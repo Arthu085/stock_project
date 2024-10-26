@@ -86,32 +86,16 @@ INSERT INTO material (nome_material, categoria_id) VALUES
 ('material_paciente', 2)
 GO
 
-INSERT INTO item (nome, categoria_id, id_material) VALUES
-('remedio', 2, 1)
-GO
-
 -- Trigger para atualizar o saldo de estoque após uma movimentação
 CREATE TRIGGER update_saldo_estoque
 ON moviestoque
 AFTER INSERT
 AS
 BEGIN
-    -- Atualiza o saldo existente para entradas
-    UPDATE s
-    SET s.quantidade = s.quantidade + i.quantidade
-    FROM saldoestoque s
-    JOIN inserted i ON s.id_item = i.id_item
-    WHERE i.tipo_mov_id = 1;  -- Entrada
+    -- Inicia uma transação explícita
+    BEGIN TRANSACTION;
 
-    -- Verifica se há quantidade suficiente para saídas e realiza a atualização
-    UPDATE s
-    SET s.quantidade = s.quantidade - i.quantidade
-    FROM saldoestoque s
-    JOIN inserted i ON s.id_item = i.id_item
-    WHERE i.tipo_mov_id = 2  -- Saída
-    AND i.quantidade <= s.quantidade;  -- Só atualiza se a quantidade for suficiente
-
-    -- Lança uma exceção se houver uma tentativa de saída sem saldo suficiente
+    -- Verifica saldo insuficiente para saídas e lança uma exceção
     IF EXISTS (
         SELECT 1
         FROM saldoestoque s
@@ -120,8 +104,24 @@ BEGIN
         AND i.quantidade > s.quantidade
     )
     BEGIN
-        THROW 50000, 'Estoque insuficiente para saida.', 1;
+        ROLLBACK TRANSACTION;  -- Reverte a transação se não houver saldo suficiente
+        THROW 50000, 'Estoque insuficiente para saída.', 1;
+        RETURN;
     END;
+
+    -- Atualiza o saldo existente para entradas
+    UPDATE s
+    SET s.quantidade = s.quantidade + i.quantidade
+    FROM saldoestoque s
+    JOIN inserted i ON s.id_item = i.id_item
+    WHERE i.tipo_mov_id = 1;  -- Entrada
+
+    -- Atualiza o saldo existente para saídas
+    UPDATE s
+    SET s.quantidade = s.quantidade - i.quantidade
+    FROM saldoestoque s
+    JOIN inserted i ON s.id_item = i.id_item
+    WHERE i.tipo_mov_id = 2;  -- Saída
 
     -- Insere novos itens no saldoestoque caso eles não existam ainda
     INSERT INTO saldoestoque (id_item, quantidade)
@@ -134,18 +134,7 @@ BEGIN
     WHERE NOT EXISTS (
         SELECT 1 FROM saldoestoque s WHERE s.id_item = i.id_item
     );
+
+    -- Confirma a transação após todas as operações
+    COMMIT TRANSACTION;
 END;
-GO
-
-SELECT * FROM item;
-INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade) VALUES
-(1, 1, 50)
-GO
-
-INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade) VALUES
-(1, 2, 40)
-GO
-
-
-SELECT * FROM saldoestoque
-SELECT * FROM moviestoque
