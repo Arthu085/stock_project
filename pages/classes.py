@@ -1,5 +1,4 @@
 import streamlit as st
-import pandas as pd
 from services import conn
 
 st.set_page_config(page_title='Estoque - Classes',
