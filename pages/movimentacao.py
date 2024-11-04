@@ -35,6 +35,7 @@ choice_categoria = st.selectbox('Selecione a categoria:', options=df_categoria['
 
 if choice_categoria == 'Classe':
     choice_classes = st.selectbox('Selecione a classe:', options=df_classes['nome_classe'])
+
     if choice_classes:
         query_item_classe = f"""SELECT a.id_item, a.nome, b.nome_classe FROM item a
         INNER JOIN classes b
@@ -43,12 +44,32 @@ if choice_categoria == 'Classe':
         df_item_classe = conn.carregar_dados(query_item_classe)
         choice_item = st.selectbox('Selecione o item:', options=df_item_classe['nome'])
         choice_tipo = st.selectbox('Selecione o tipo de movimentação:', options=df_tipomov['tipo'])
-        choice_qtde = st.number_input('Digite a quantidade:', min_value=0)
 
-        item_id = df_item_classe.loc[df_item_classe['nome'] == choice_item, 'id_item'].values[0]
-        tipo_mov_id = tipo_dict[choice_tipo]
+        if choice_tipo == 'Entrada':
+            query_tipo_entrada = """SELECT tipo_entrada_saida_id, tipo_entrada_saida_nome
+                                        FROM entradasaida
+                                        WHERE tipo_entrada_saida_id IN (5, 1, 2)"""
+            df_tipo_entrada = conn.carregar_dados(query_tipo_entrada)
+            df_tipo_entrada['tipo_entrada_saida_nome'] = df_tipo_entrada['tipo_entrada_saida_nome'].replace({'nota_fiscal': 'Nota Fiscal', 'balanco': 'Balanço', 'devolucao': 'Devolução'})
+            tipo_entrada_dict = dict(zip(df_tipo_entrada['tipo_entrada_saida_nome'], df_tipo_entrada['tipo_entrada_saida_id'])) 
+            choice_tipo_entrada = st.selectbox('Selecione o tipo de entrada:', options=df_tipo_entrada['tipo_entrada_saida_nome'])
+
+            item_id = df_item_classe.loc[df_item_classe['nome'] == choice_item, 'id_item'].values[0]
+            tipo_mov_id = tipo_dict[choice_tipo]
+
+            if choice_tipo_entrada == 'Nota Fiscal':
+                numero_nota = st.number_input('Digite o numero da nota:', min_value=0)
+                choice_qtde = st.number_input('Digite a quantidade:', min_value=0)
+
+            elif choice_tipo_entrada == 'Balanço':
+                choice_qtde = st.number_input('Digite a quantidade:', min_value=0)  
+
+            elif choice_tipo_entrada == 'Devolução':
+                devolucao_obs = st.text_input('Observação:')
+                choice_qtde = st.number_input('Digite a quantidade:', min_value=0)         
 
         if st.button('Adicionar/Retirar'):
+
             if choice_item and choice_qtde > 0 and choice_tipo:
                 try:
                     query_add_mov = f"INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade) VALUES ({item_id}, {tipo_mov_id}, {choice_qtde})"
