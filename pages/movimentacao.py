@@ -65,13 +65,20 @@ if choice_categoria == 'Classe':
                 if st.button('Adicionar/Retirar'):
 
                     if choice_item and choice_qtde > 0 and choice_tipo and numero_nota:
-                        query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id) 
-                                            VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id})"""
-                        conn.inserir_dados(query_add_mov)
-                        query_add_nota = f"""INSERT INTO informacoes (tipo_entrada_saida_id, numero_nota) 
-                                            VALUES ({tipo_entrada_saida_id}, {numero_nota})"""
-                        conn.inserir_dados(query_add_nota)
-                        st.success('Estoque Atualizado')
+                        query_add_nota = f"""BEGIN
+                                                INSERT INTO informacoes (tipo_entrada_saida_id, numero_nota) 
+                                                VALUES ({tipo_entrada_saida_id}, {numero_nota});
+                                                SELECT SCOPE_IDENTITY() AS informacoes_id;
+                                            END"""
+                        informacoes_id = conn.inserir_dados(query_add_nota, retornar_id=True)   
+
+                        if informacoes_id:
+                            query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id, informacoes_id) 
+                                                VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id}, {informacoes_id})"""
+                            conn.inserir_dados(query_add_mov)
+                            st.success('Estoque Atualizado')
+                        else:
+                            st.error("Erro ao capturar o ID gerado para 'informacoes")
                     else:
                         st.error('Preencha todos os campos necessários!')
 
@@ -82,13 +89,20 @@ if choice_categoria == 'Classe':
                 if st.button('Adicionar/Retirar'):
 
                     if choice_item and choice_qtde > 0 and choice_tipo:
-                        query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id) 
-                                            VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id})"""
-                        conn.inserir_dados(query_add_mov)
-                        query_add_nota = f"""INSERT INTO informacoes (tipo_entrada_saida_id) 
-                                            VALUES ({tipo_entrada_saida_id})"""
-                        conn.inserir_dados(query_add_nota)
-                        st.success('Estoque Atualizado')
+                        query_add_balanco = f"""BEGIN
+                                                INSERT INTO informacoes (tipo_entrada_saida_id) 
+                                                VALUES ({tipo_entrada_saida_id});
+                                                SELECT SCOPE_IDENTITY() AS informacoes_id;
+                                            END"""
+                        informacoes_id = conn.inserir_dados(query_add_balanco, retornar_id=True) 
+
+                        if informacoes_id:
+                            query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id, informacoes_id) 
+                                                VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id}, {informacoes_id})"""
+                            conn.inserir_dados(query_add_mov)
+                            st.success('Estoque Atualizado')
+                        else:
+                            st.error("Erro ao capturar o ID gerado para 'informacoes")
                     else:
                         st.error('Preencha todos os campos necessários!')        
 
@@ -100,13 +114,20 @@ if choice_categoria == 'Classe':
                 if st.button('Adicionar/Retirar'):
 
                     if choice_item and choice_qtde > 0 and choice_tipo and devolucao_obs:
-                        query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id) 
-                                            VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id})"""
-                        conn.inserir_dados(query_add_mov)
-                        query_add_nota = f"""INSERT INTO informacoes (tipo_entrada_saida_id, devolucao_obs) 
-                                            VALUES ({tipo_entrada_saida_id}, {devolucao_obs})"""
-                        conn.inserir_dados(query_add_nota)
-                        st.success('Estoque Atualizado')
+                        query_add_obs = f"""BEGIN
+                                                INSERT INTO informacoes (tipo_entrada_saida_id, devolucao_obs) 
+                                                VALUES ({tipo_entrada_saida_id}, '{devolucao_obs}');
+                                                SELECT SCOPE_IDENTITY() AS informacoes_id;
+                                            END"""
+                        informacoes_id = conn.inserir_dados(query_add_obs, retornar_id=True)     
+                        
+                        if informacoes_id:
+                            query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id, informacoes_id)
+                                                VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id}, {informacoes_id})"""
+                            conn.inserir_dados(query_add_mov)
+                            st.success('Estoque Atualizado')
+                        else:
+                            st.error("Erro ao capturar o ID gerado para 'informacoes")
                     else:
                         st.error('Preencha todos os campos necessários!')   
         else:
@@ -116,45 +137,109 @@ if choice_categoria == 'Classe':
             df_tipo_saida = conn.carregar_dados(query_tipo_saida)
             df_tipo_saida['tipo_entrada_saida_nome'] = df_tipo_saida['tipo_entrada_saida_nome'].replace({'balanco': 'Balanço', 'devolucao': 'Devolução', 'paciente': 'Paciente', 'perda': 'Perda'})
             tipo_saida_dict = dict(zip(df_tipo_saida['tipo_entrada_saida_nome'], df_tipo_saida['tipo_entrada_saida_id'])) 
-            choice_tipo_entrada = st.selectbox('Selecione o tipo de entrada:', options=df_tipo_saida['tipo_entrada_saida_nome'])
+            choice_tipo_saida = st.selectbox('Selecione o tipo de entrada:', options=df_tipo_saida['tipo_entrada_saida_nome'])
 
             item_id = df_item_classe.loc[df_item_classe['nome'] == choice_item, 'id_item'].values[0]
             tipo_mov_id = tipo_dict[choice_tipo]
 
-            if choice_tipo_entrada == 'Balanço':
-                choice_qtde = st.number_input('Digite a quantidade:', min_value=0)
-                tipo_entrada_saida_id = tipo_saida_dict[choice_tipo_entrada]
+            if choice_tipo_saida == 'Balanço':
+                choice_qtde = st.number_input('Digite a quantidade:', min_value=0) 
+                tipo_entrada_saida_id = tipo_saida_dict[choice_tipo_saida]
 
                 if st.button('Adicionar/Retirar'):
 
                     if choice_item and choice_qtde > 0 and choice_tipo:
-                        query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id) 
-                                            VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id})"""
-                        conn.inserir_dados(query_add_mov)
-                        query_add_nota = f"""INSERT INTO informacoes (tipo_entrada_saida_id) 
-                                            VALUES ({tipo_entrada_saida_id})"""
-                        conn.inserir_dados(query_add_nota)
-                        st.success('Estoque Atualizado')
-                    else:
-                        st.error('Preencha todos os campos necessários!')  
+                        query_add_balanco = f"""BEGIN
+                                                INSERT INTO informacoes (tipo_entrada_saida_id) 
+                                                VALUES ({tipo_entrada_saida_id});
+                                                SELECT SCOPE_IDENTITY() AS informacoes_id;
+                                            END"""
+                        informacoes_id = conn.inserir_dados(query_add_balanco, retornar_id=True) 
 
-            elif choice_tipo_entrada == 'Devolução':
-                devolucao_obs = st.text_input('Observação:')                
-                choice_qtde = st.number_input('Digite a quantidade:', min_value=0)
-                tipo_entrada_saida_id = tipo_saida_dict[choice_tipo_entrada]
+                        if informacoes_id:
+                            query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id, informacoes_id) 
+                                                VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id}, {informacoes_id})"""
+                            conn.inserir_dados(query_add_mov)
+                            st.success('Estoque Atualizado')
+                        else:
+                            st.error("Erro ao capturar o ID gerado para 'informacoes")
+                    else:
+                        st.error('Preencha todos os campos necessários!') 
+
+            elif choice_tipo_saida == 'Devolução':
+                devolucao_obs = st.text_input('Observação:')
+                choice_qtde = st.number_input('Digite a quantidade:', min_value=0)         
+                tipo_entrada_saida_id = tipo_saida_dict[choice_tipo_saida]
 
                 if st.button('Adicionar/Retirar'):
 
                     if choice_item and choice_qtde > 0 and choice_tipo and devolucao_obs:
-                        query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id) 
-                                            VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id})"""
-                        conn.inserir_dados(query_add_mov)
-                        query_add_nota = f"""INSERT INTO informacoes (tipo_entrada_saida_id, devolucao_obs) 
-                                            VALUES ({tipo_entrada_saida_id}, '{devolucao_obs}')"""
-                        conn.inserir_dados(query_add_nota)
-                        st.success('Estoque Atualizado')
+                        query_add_obs = f"""BEGIN
+                                                INSERT INTO informacoes (tipo_entrada_saida_id, devolucao_obs) 
+                                                VALUES ({tipo_entrada_saida_id}, '{devolucao_obs}');
+                                                SELECT SCOPE_IDENTITY() AS informacoes_id;
+                                            END"""
+                        informacoes_id = conn.inserir_dados(query_add_obs, retornar_id=True)     
+                        
+                        if informacoes_id:
+                            query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id, informacoes_id)
+                                                VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id}, {informacoes_id})"""
+                            conn.inserir_dados(query_add_mov)
+                            st.success('Estoque Atualizado')
+                        else:
+                            st.error("Erro ao capturar o ID gerado para 'informacoes")
                     else:
-                        st.error('Preencha todos os campos necessários!')              
+                        st.error('Preencha todos os campos necessários!')
+
+            elif choice_tipo_saida == 'Paciente':
+                paciente_nome = st.text_input('Digite o nome do paciente:')
+                choice_qtde = st.number_input('Digite a quantidade:', min_value=0)         
+                tipo_entrada_saida_id = tipo_saida_dict[choice_tipo_saida]
+
+                if st.button('Adicionar/Retirar'):
+
+                    if choice_item and choice_qtde > 0 and choice_tipo and paciente_nome:
+                        query_add_obs = f"""BEGIN
+                                                INSERT INTO informacoes (tipo_entrada_saida_id, paciente_nome) 
+                                                VALUES ({tipo_entrada_saida_id}, '{paciente_nome}');
+                                                SELECT SCOPE_IDENTITY() AS informacoes_id;
+                                            END"""
+                        informacoes_id = conn.inserir_dados(query_add_obs, retornar_id=True)     
+                        
+                        if informacoes_id:
+                            query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id, informacoes_id)
+                                                VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id}, {informacoes_id})"""
+                            conn.inserir_dados(query_add_mov)
+                            st.success('Estoque Atualizado')
+                        else:
+                            st.error("Erro ao capturar o ID gerado para 'informacoes")
+                    else:
+                        st.error('Preencha todos os campos necessários!')
+            
+            elif choice_tipo_saida == 'Perda':
+                motivo_perda = st.text_input('Digite o motivo da perda:')
+                choice_qtde = st.number_input('Digite a quantidade:', min_value=0)         
+                tipo_entrada_saida_id = tipo_saida_dict[choice_tipo_saida]   
+
+                if st.button('Adicionar/Retirar'):
+
+                    if choice_item and choice_qtde > 0 and choice_tipo and motivo_perda:
+                        query_add_obs = f"""BEGIN
+                                                INSERT INTO informacoes (tipo_entrada_saida_id, motivo_perda) 
+                                                VALUES ({tipo_entrada_saida_id}, '{motivo_perda}');
+                                                SELECT SCOPE_IDENTITY() AS informacoes_id;
+                                            END"""
+                        informacoes_id = conn.inserir_dados(query_add_obs, retornar_id=True)     
+                        
+                        if informacoes_id:
+                            query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id, informacoes_id)
+                                                VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id}, {informacoes_id})"""
+                            conn.inserir_dados(query_add_mov)
+                            st.success('Estoque Atualizado')
+                        else:
+                            st.error("Erro ao capturar o ID gerado para 'informacoes")
+                    else:
+                        st.error('Preencha todos os campos necessários!')                           
 
 else:
     choice_material = st.selectbox('Selecione o material:', options=df_material['nome_material'])
@@ -165,24 +250,203 @@ else:
         df_item_material = conn.carregar_dados(query_item_material)
         choice_item = st.selectbox('Selecione o item:', options=df_item_material['nome'])
         choice_tipo = st.selectbox('Selecione o tipo de movimentação:', options=df_tipomov['tipo'])
-        choice_qtde = st.number_input('Digite a quantidade:', min_value=0)
 
-        item_id = df_item_material.loc[df_item_material['nome'] == choice_item, 'id_item'].values[0]
-        tipo_mov_id = tipo_dict[choice_tipo]
-        
-        if st.button('Adicionar/Retirar'):
-            if choice_item and choice_qtde > 0 and choice_tipo:
-                try:
-                    query_add_mov = f"INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade) VALUES ({item_id}, {tipo_mov_id}, {choice_qtde})"
-                    conn.inserir_dados(query_add_mov)
-                    st.success('Estoque Atualizado')
-                except Exception as e:
-                    if "Estoque insuficiente para saída." in str(e):
-                        st.error('Erro: Estoque insuficiente para a saída desejada!')
+        if choice_tipo == 'Entrada':
+            query_tipo_entrada = """SELECT tipo_entrada_saida_id, tipo_entrada_saida_nome
+                                        FROM entradasaida
+                                        WHERE tipo_entrada_saida_id IN (5, 1, 2)"""
+            df_tipo_entrada = conn.carregar_dados(query_tipo_entrada)
+            df_tipo_entrada['tipo_entrada_saida_nome'] = df_tipo_entrada['tipo_entrada_saida_nome'].replace({'nota_fiscal': 'Nota Fiscal', 'balanco': 'Balanço', 'devolucao': 'Devolução'})
+            tipo_entrada_dict = dict(zip(df_tipo_entrada['tipo_entrada_saida_nome'], df_tipo_entrada['tipo_entrada_saida_id'])) 
+            choice_tipo_entrada = st.selectbox('Selecione o tipo de entrada:', options=df_tipo_entrada['tipo_entrada_saida_nome'])
+
+            item_id = df_item_material.loc[df_item_material['nome'] == choice_item, 'id_item'].values[0]
+            tipo_mov_id = tipo_dict[choice_tipo]
+
+            if choice_tipo_entrada == 'Nota Fiscal':
+                numero_nota = st.number_input('Digite o numero da nota:', min_value=0)
+                choice_qtde = st.number_input('Digite a quantidade:', min_value=0)
+                tipo_entrada_saida_id = tipo_entrada_dict[choice_tipo_entrada]
+
+                if st.button('Adicionar/Retirar'):
+
+                    if choice_item and choice_qtde > 0 and choice_tipo and numero_nota:
+                        query_add_nota = f"""BEGIN
+                                                INSERT INTO informacoes (tipo_entrada_saida_id, numero_nota) 
+                                                VALUES ({tipo_entrada_saida_id}, {numero_nota});
+                                                SELECT SCOPE_IDENTITY() AS informacoes_id;
+                                            END"""
+                        informacoes_id = conn.inserir_dados(query_add_nota, retornar_id=True)   
+
+                        if informacoes_id:
+                            query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id, informacoes_id) 
+                                                VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id}, {informacoes_id})"""
+                            conn.inserir_dados(query_add_mov)
+                            st.success('Estoque Atualizado')
+                        else:
+                            st.error("Erro ao capturar o ID gerado para 'informacoes")
                     else:
-                        st.error(f'Ocorreu um erro ao adicionar a movimentação: {str(e)}')
-            else:
-                st.error('Preencha todos os campos necessários!')
+                        st.error('Preencha todos os campos necessários!')
+
+            elif choice_tipo_entrada == 'Balanço':
+                choice_qtde = st.number_input('Digite a quantidade:', min_value=0) 
+                tipo_entrada_saida_id = tipo_entrada_dict[choice_tipo_entrada]
+
+                if st.button('Adicionar/Retirar'):
+
+                    if choice_item and choice_qtde > 0 and choice_tipo:
+                        query_add_balanco = f"""BEGIN
+                                                INSERT INTO informacoes (tipo_entrada_saida_id) 
+                                                VALUES ({tipo_entrada_saida_id});
+                                                SELECT SCOPE_IDENTITY() AS informacoes_id;
+                                            END"""
+                        informacoes_id = conn.inserir_dados(query_add_balanco, retornar_id=True) 
+
+                        if informacoes_id:
+                            query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id, informacoes_id) 
+                                                VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id}, {informacoes_id})"""
+                            conn.inserir_dados(query_add_mov)
+                            st.success('Estoque Atualizado')
+                        else:
+                            st.error("Erro ao capturar o ID gerado para 'informacoes")
+                    else:
+                        st.error('Preencha todos os campos necessários!')        
+
+            elif choice_tipo_entrada == 'Devolução':
+                devolucao_obs = st.text_input('Observação:')
+                choice_qtde = st.number_input('Digite a quantidade:', min_value=0)         
+                tipo_entrada_saida_id = tipo_entrada_dict[choice_tipo_entrada]
+
+                if st.button('Adicionar/Retirar'):
+
+                    if choice_item and choice_qtde > 0 and choice_tipo and devolucao_obs:
+                        query_add_obs = f"""BEGIN
+                                                INSERT INTO informacoes (tipo_entrada_saida_id, devolucao_obs) 
+                                                VALUES ({tipo_entrada_saida_id}, '{devolucao_obs}');
+                                                SELECT SCOPE_IDENTITY() AS informacoes_id;
+                                            END"""
+                        informacoes_id = conn.inserir_dados(query_add_obs, retornar_id=True)     
+                        
+                        if informacoes_id:
+                            query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id, informacoes_id)
+                                                VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id}, {informacoes_id})"""
+                            conn.inserir_dados(query_add_mov)
+                            st.success('Estoque Atualizado')
+                        else:
+                            st.error("Erro ao capturar o ID gerado para 'informacoes")
+                    else:
+                        st.error('Preencha todos os campos necessários!')   
+        else:
+            query_tipo_saida = """SELECT tipo_entrada_saida_id, tipo_entrada_saida_nome
+                                        FROM entradasaida
+                                        WHERE tipo_entrada_saida_id != 5"""
+            df_tipo_saida = conn.carregar_dados(query_tipo_saida)
+            df_tipo_saida['tipo_entrada_saida_nome'] = df_tipo_saida['tipo_entrada_saida_nome'].replace({'balanco': 'Balanço', 'devolucao': 'Devolução', 'paciente': 'Paciente', 'perda': 'Perda'})
+            tipo_saida_dict = dict(zip(df_tipo_saida['tipo_entrada_saida_nome'], df_tipo_saida['tipo_entrada_saida_id'])) 
+            choice_tipo_saida = st.selectbox('Selecione o tipo de entrada:', options=df_tipo_saida['tipo_entrada_saida_nome'])
+
+            item_id = df_item_material.loc[df_item_material['nome'] == choice_item, 'id_item'].values[0]
+            tipo_mov_id = tipo_dict[choice_tipo]
+
+            if choice_tipo_saida == 'Balanço':
+                choice_qtde = st.number_input('Digite a quantidade:', min_value=0) 
+                tipo_entrada_saida_id = tipo_saida_dict[choice_tipo_saida]
+
+                if st.button('Adicionar/Retirar'):
+
+                    if choice_item and choice_qtde > 0 and choice_tipo:
+                        query_add_balanco = f"""BEGIN
+                                                INSERT INTO informacoes (tipo_entrada_saida_id) 
+                                                VALUES ({tipo_entrada_saida_id});
+                                                SELECT SCOPE_IDENTITY() AS informacoes_id;
+                                            END"""
+                        informacoes_id = conn.inserir_dados(query_add_balanco, retornar_id=True) 
+
+                        if informacoes_id:
+                            query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id, informacoes_id) 
+                                                VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id}, {informacoes_id})"""
+                            conn.inserir_dados(query_add_mov)
+                            st.success('Estoque Atualizado')
+                        else:
+                            st.error("Erro ao capturar o ID gerado para 'informacoes")
+                    else:
+                        st.error('Preencha todos os campos necessários!') 
+
+            elif choice_tipo_saida == 'Devolução':
+                devolucao_obs = st.text_input('Observação:')
+                choice_qtde = st.number_input('Digite a quantidade:', min_value=0)         
+                tipo_entrada_saida_id = tipo_saida_dict[choice_tipo_saida]
+
+                if st.button('Adicionar/Retirar'):
+
+                    if choice_item and choice_qtde > 0 and choice_tipo and devolucao_obs:
+                        query_add_obs = f"""BEGIN
+                                                INSERT INTO informacoes (tipo_entrada_saida_id, devolucao_obs) 
+                                                VALUES ({tipo_entrada_saida_id}, '{devolucao_obs}');
+                                                SELECT SCOPE_IDENTITY() AS informacoes_id;
+                                            END"""
+                        informacoes_id = conn.inserir_dados(query_add_obs, retornar_id=True)     
+                        
+                        if informacoes_id:
+                            query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id, informacoes_id)
+                                                VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id}, {informacoes_id})"""
+                            conn.inserir_dados(query_add_mov)
+                            st.success('Estoque Atualizado')
+                        else:
+                            st.error("Erro ao capturar o ID gerado para 'informacoes")
+                    else:
+                        st.error('Preencha todos os campos necessários!')
+
+            elif choice_tipo_saida == 'Paciente':
+                paciente_nome = st.text_input('Digite o nome do paciente:')
+                choice_qtde = st.number_input('Digite a quantidade:', min_value=0)         
+                tipo_entrada_saida_id = tipo_saida_dict[choice_tipo_saida]
+
+                if st.button('Adicionar/Retirar'):
+
+                    if choice_item and choice_qtde > 0 and choice_tipo and paciente_nome:
+                        query_add_obs = f"""BEGIN
+                                                INSERT INTO informacoes (tipo_entrada_saida_id, paciente_nome) 
+                                                VALUES ({tipo_entrada_saida_id}, '{paciente_nome}');
+                                                SELECT SCOPE_IDENTITY() AS informacoes_id;
+                                            END"""
+                        informacoes_id = conn.inserir_dados(query_add_obs, retornar_id=True)     
+                        
+                        if informacoes_id:
+                            query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id, informacoes_id)
+                                                VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id}, {informacoes_id})"""
+                            conn.inserir_dados(query_add_mov)
+                            st.success('Estoque Atualizado')
+                        else:
+                            st.error("Erro ao capturar o ID gerado para 'informacoes")
+                    else:
+                        st.error('Preencha todos os campos necessários!')
+            
+            elif choice_tipo_saida == 'Perda':
+                motivo_perda = st.text_input('Digite o motivo da perda:')
+                choice_qtde = st.number_input('Digite a quantidade:', min_value=0)         
+                tipo_entrada_saida_id = tipo_saida_dict[choice_tipo_saida]   
+
+                if st.button('Adicionar/Retirar'):
+
+                    if choice_item and choice_qtde > 0 and choice_tipo and motivo_perda:
+                        query_add_obs = f"""BEGIN
+                                                INSERT INTO informacoes (tipo_entrada_saida_id, motivo_perda) 
+                                                VALUES ({tipo_entrada_saida_id}, '{motivo_perda}');
+                                                SELECT SCOPE_IDENTITY() AS informacoes_id;
+                                            END"""
+                        informacoes_id = conn.inserir_dados(query_add_obs, retornar_id=True)     
+                        
+                        if informacoes_id:
+                            query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id, informacoes_id)
+                                                VALUES ({item_id}, {tipo_mov_id}, {choice_qtde}, {tipo_entrada_saida_id}, {informacoes_id})"""
+                            conn.inserir_dados(query_add_mov)
+                            st.success('Estoque Atualizado')
+                        else:
+                            st.error("Erro ao capturar o ID gerado para 'informacoes")
+                    else:
+                        st.error('Preencha todos os campos necessários!')                           
+
 
 
 
