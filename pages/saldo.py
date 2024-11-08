@@ -18,6 +18,7 @@ if choice_item == 'Geral':
                 ON a.id_item = b.id_item"""
     df_query_saldo = conn.carregar_dados(query_saldo)
     df_query_saldo = df_query_saldo.rename(columns={'nome': 'Item', 'quantidade': 'Quantidade'})
+    df_query_saldo['Quantidade'] = df_query_saldo['Quantidade'].apply(lambda x: f"{x:,}".replace(",", ""))
     st.write(df_query_saldo)
 else:
     query_saldo = f"""SELECT b.nome, a.quantidade FROM saldoestoque a
@@ -26,4 +27,5 @@ else:
                 WHERE b.nome = ('{choice_item}')"""
     df_query_saldo = conn.carregar_dados(query_saldo)
     df_query_saldo = df_query_saldo.rename(columns={'nome': 'Item', 'quantidade': 'Quantidade'})
+    df_query_saldo['Quantidade'] = df_query_saldo['Quantidade'].apply(lambda x: f"{x:,}".replace(",", ""))
     st.write(df_query_saldo)
