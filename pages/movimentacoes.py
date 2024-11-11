@@ -52,7 +52,10 @@ if st.button('Pesquisar'):
         c.devolucao_obs, 
         c.paciente_nome, 
         c.motivo_perda, 
-        d.tipo FROM moviestoque a
+        d.tipo,
+        c.lote_nota,
+        FORMAT(c.data_nota, 'dd/MM/yyyy') AS data_nota
+        FROM moviestoque a
         INNER JOIN entradasaida b
             ON a.tipo_entrada_saida_id = b.tipo_entrada_saida_id
         INNER JOIN informacoes c
@@ -74,7 +77,9 @@ if st.button('Pesquisar'):
         'devolucao_obs': 'Observação da Devolução',
         'paciente_nome': 'Nome do Paciente',
         'motivo_perda': 'Motivo da Perda',
-        'tipo': 'Tipo de Movimentação'
+        'tipo': 'Tipo de Movimentação',
+        'lote_nota': 'Lote da Nota Fiscal',
+        'data_nota': 'Validade da Nota Fiscal'
         }, inplace=True)
         
         df_query_search_movi['Quantidade'] = df_query_search_movi['Quantidade'].apply(lambda x: f"{x:,}".replace(",", ""))
@@ -100,7 +105,10 @@ if st.button('Pesquisar'):
         c.devolucao_obs, 
         c.paciente_nome, 
         c.motivo_perda, 
-        d.tipo FROM moviestoque a
+        d.tipo,
+        c.lote_nota,
+        FORMAT(c.data_nota, 'dd/MM/yyyy') AS data_nota
+        FROM moviestoque a
         INNER JOIN entradasaida b
             ON a.tipo_entrada_saida_id = b.tipo_entrada_saida_id
         INNER JOIN informacoes c
@@ -123,7 +131,9 @@ if st.button('Pesquisar'):
         'devolucao_obs': 'Observação da Devolução',
         'paciente_nome': 'Nome do Paciente',
         'motivo_perda': 'Motivo da Perda',
-        'tipo': 'Tipo de Movimentação'
+        'tipo': 'Tipo de Movimentação',
+        'lote_nota': 'Lote da Nota Fiscal',
+        'data_nota': 'Validade da Nota Fiscal'
         }, inplace=True)
 
         df_query_search_movi['Quantidade'] = df_query_search_movi['Quantidade'].apply(lambda x: f"{x:,}".replace(",", ""))

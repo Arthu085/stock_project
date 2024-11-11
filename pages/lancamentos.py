@@ -1,5 +1,7 @@
 import streamlit as st
 from services import conn
+import pytz
+import datetime
 
 st.set_page_config(page_title='Estoque - Entrada/Saída',
                     layout="wide")
@@ -59,15 +61,19 @@ if choice_categoria == 'Classe':
 
             if choice_tipo_entrada == 'Nota Fiscal':
                 numero_nota = st.number_input('Digite o numero da nota:', min_value=0)
+                lote_nota = st.text_input('Digite o lote da nota fiscal:')
+                nota_data = st.date_input('Selecione a data de validade da nota:', format="DD/MM/YYYY")
                 choice_qtde = st.number_input('Digite a quantidade:', min_value=0)
                 tipo_entrada_saida_id = tipo_entrada_dict[choice_tipo_entrada]
 
+                data_nota_str = nota_data.strftime('%Y-%m-%d %H:%M:%S')
+
                 if st.button('Adicionar/Retirar'):
 
-                    if choice_item and choice_qtde > 0 and choice_tipo and numero_nota:
+                    if choice_item and choice_qtde > 0 and choice_tipo and numero_nota and lote_nota and nota_data:
                         query_add_nota = f"""BEGIN
-                                                INSERT INTO informacoes (tipo_entrada_saida_id, numero_nota) 
-                                                VALUES ({tipo_entrada_saida_id}, {numero_nota});
+                                                INSERT INTO informacoes (tipo_entrada_saida_id, numero_nota, lote_nota, data_nota) 
+                                                VALUES ({tipo_entrada_saida_id}, {numero_nota}, {lote_nota}, '{data_nota_str}');
                                                 SELECT SCOPE_IDENTITY() AS informacoes_id;
                                             END"""
                         informacoes_id = conn.inserir_dados(query_add_nota, retornar_id=True)   
@@ -265,18 +271,22 @@ else:
 
             if choice_tipo_entrada == 'Nota Fiscal':
                 numero_nota = st.number_input('Digite o numero da nota:', min_value=0)
+                lote_nota = st.text_input('Digite o lote da nota fiscal:')
+                nota_data = st.date_input('Selecione a data de validade da nota:', format="DD/MM/YYYY")
                 choice_qtde = st.number_input('Digite a quantidade:', min_value=0)
                 tipo_entrada_saida_id = tipo_entrada_dict[choice_tipo_entrada]
 
+                data_nota_str = nota_data.strftime('%Y-%m-%d %H:%M:%S')
+
                 if st.button('Adicionar/Retirar'):
 
-                    if choice_item and choice_qtde > 0 and choice_tipo and numero_nota:
+                    if choice_item and choice_qtde > 0 and choice_tipo and numero_nota and lote_nota and nota_data:
                         query_add_nota = f"""BEGIN
-                                                INSERT INTO informacoes (tipo_entrada_saida_id, numero_nota) 
-                                                VALUES ({tipo_entrada_saida_id}, {numero_nota});
+                                                INSERT INTO informacoes (tipo_entrada_saida_id, numero_nota, lote_nota, data_nota) 
+                                                VALUES ({tipo_entrada_saida_id}, {numero_nota}, {lote_nota}, '{data_nota_str}');
                                                 SELECT SCOPE_IDENTITY() AS informacoes_id;
                                             END"""
-                        informacoes_id = conn.inserir_dados(query_add_nota, retornar_id=True)   
+                        informacoes_id = conn.inserir_dados(query_add_nota, retornar_id=True)  
 
                         if informacoes_id:
                             query_add_mov = f"""INSERT INTO moviestoque (id_item, tipo_mov_id, quantidade, tipo_entrada_saida_id, informacoes_id) 
