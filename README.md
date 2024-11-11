@@ -43,7 +43,6 @@ Na pasta services/, o arquivo db_script.py contém o script SQL que cria as tabe
 Após configurar o banco de dados e a conexão, você pode rodar o aplicativo Streamlit com o seguinte comando:
 
 ```bash
-Copy code
 streamlit run stock_project/index.py
 ```
 Isso abrirá a interface no seu navegador, onde você poderá interagir com o sistema de gerenciamento de estoque.
