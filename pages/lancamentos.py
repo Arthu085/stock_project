@@ -73,7 +73,7 @@ if choice_categoria == 'Classe':
                     if choice_item and choice_qtde > 0 and choice_tipo and numero_nota and lote_nota and nota_data:
                         query_add_nota = f"""BEGIN
                                                 INSERT INTO informacoes (tipo_entrada_saida_id, numero_nota, lote_nota, data_nota) 
-                                                VALUES ({tipo_entrada_saida_id}, {numero_nota}, {lote_nota}, '{data_nota_str}');
+                                                VALUES ({tipo_entrada_saida_id}, {numero_nota}, '{lote_nota}', '{data_nota_str}');
                                                 SELECT SCOPE_IDENTITY() AS informacoes_id;
                                             END"""
                         informacoes_id = conn.inserir_dados(query_add_nota, retornar_id=True)   
@@ -283,7 +283,7 @@ else:
                     if choice_item and choice_qtde > 0 and choice_tipo and numero_nota and lote_nota and nota_data:
                         query_add_nota = f"""BEGIN
                                                 INSERT INTO informacoes (tipo_entrada_saida_id, numero_nota, lote_nota, data_nota) 
-                                                VALUES ({tipo_entrada_saida_id}, {numero_nota}, {lote_nota}, '{data_nota_str}');
+                                                VALUES ({tipo_entrada_saida_id}, {numero_nota}, '{lote_nota}', '{data_nota_str}');
                                                 SELECT SCOPE_IDENTITY() AS informacoes_id;
                                             END"""
                         informacoes_id = conn.inserir_dados(query_add_nota, retornar_id=True)  
